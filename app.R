@@ -54,8 +54,11 @@ server <- function(input, output) {
       # grab shots data
      player_id <- players_df$person_id[which(players_df$display_first_last == input$players)]
      season <- input$season
+    
      shotsdf <- get_shots_data(player_id, season)
-     # visualize shots graph
+       
+     # plot shots data
+     if (!is.null(shotsdf)) {
      ggplot(shotsdf, aes(x=loc_x, y=loc_y)) +
       annotation_custom(court, -250, 250, -50, 420) +
        geom_point(aes(colour = shot_zone_basic, shape=event_type)) +
@@ -70,7 +73,18 @@ server <- function(input, output) {
              axis.text.y = element_blank(),
              legend.title = element_blank(),
              plot.title = element_text(size = 15, lineheight = 0.9, face = "bold"))
-       
+     }
+     else {
+       #render empty plot with no shots data
+       ggplot(data.frame()) +
+         annotation_custom(court, -250, 250, -50, 420) +
+         geom_point() +
+         xlim(250, -250) +
+         ylim(-50, 420) +
+         coord_fixed() +
+         ggtitle(paste('No Shot Data this Season for', unique(input$players), sep = ' ')) +
+         theme(plot.title = element_text(size = 15, lineheight = 0.9, face = "bold"))
+     }
        
      
    })
@@ -87,8 +101,8 @@ server <- function(input, output) {
    
    output$playerSelection <- renderUI({
      selectInput("players", "Select Player", choices = 
-      players_df$display_first_last[which(players_df$to_year >= as.numeric(paste('20', unlist(strsplit(input$season,'-'))[2], sep = '')))],
-      selected = 'Stephen Curry')
+      players_df$display_first_last[which(players_df$to_year >= as.numeric(paste('20', unlist(strsplit(input$season,'-'))[2], sep = '')) &
+                                            players_df$from_year <= as.numeric(paste('20', unlist(strsplit(input$season,'-'))[2], sep = '')))])
    })
    
 }

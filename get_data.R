@@ -91,6 +91,7 @@ get_shots_data <- function(player_id, season, seasontype = 'Regular Season') {
 
 shots <- fromJSON(content(shotsrequest, as = 'text'))
 shots_df <- as.tibble(data.frame(shots$resultSets$rowSet[[1]], stringsAsFactors = FALSE))
+if (length(shots_df) != 0) {
 names(shots_df) <- tolower(as.character(shots$resultSets$headers[[1]]))
 
 
@@ -100,6 +101,10 @@ shots_df <- mutate(shots_df,
                   )
 
 return(shots_df)
+}
+  else {
+    return(NULL)
+  }
 
 }
 

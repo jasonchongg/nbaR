@@ -17,24 +17,36 @@ request_headers = c(
 )
 
 # Player Data 
+# Gets List of All players in NBA History
 
-players_url <- "http://stats.nba.com/stats/commonallplayers?LeagueID=00&Season=2015-16&IsOnlyCurrentSeason=0"
-
-
-request <- GET(players_url, add_headers(request_headers))
-
-
-players_data <- fromJSON(content(request, as = "text"))
-players <- as_tibble(data.frame(players_data$resultSets$rowSet[[1]], stringsAsFactors = FALSE))
-names(players) <- tolower(players_data$resultSets$headers[[1]])
-
-players <- mutate(players,
+get_players_data <- function() {
+# make request
+playersrequest <- GET(
+        "http://stats.nba.com/stats/commonallplayers",
+        query = list (
+          LeagueID = '00',
+          Season = '2017-18',
+          IsOnlyCurrentSeason = '0'
+        ),
+        add_headers(request_headers))
+# read JSON file into R
+players <- fromJSON(content(playersrequest, as = "text"))
+# convert to df then tibble for readability
+players_df <- as_tibble(data.frame(players$resultSets$rowSet[[1]], stringsAsFactors = FALSE))
+# rename columns
+names(players_df) <- tolower(players$resultSets$headers[[1]])
+# refactor data types
+players_df <- mutate(players_df,
                  person_id = as.numeric(person_id),
                  rosterstatus = as.logical(as.numeric(rosterstatus)),
                  from_year = as.numeric(from_year),
                  to_year = as.numeric(to_year),
                  team_id = as.numeric(team_id)
 )
+
+# return data
+return(players_df)
+}
 
 
 # Shots Data
@@ -53,7 +65,7 @@ get_shots_data <- function(player_id, season, seasontype = 'Regular Season') {
     query = list(
       PlayerID = player_id,
       Season = season,
-      SeasonType = seasontype, 
+      SeasonType = seasontype,
       PlayerPosition = "",
       ContextMeasure = "FGA",
       DateFrom = "",
@@ -77,31 +89,43 @@ get_shots_data <- function(player_id, season, seasontype = 'Regular Season') {
     add_headers(request_headers)
   )
 
-shots <- content(shotsrequest)
-raw_shots_data <- shots$resultSets[[1]]$rowSet
-shots_col_names <- tolower(as.character(shots$resultSets[[1]]$headers))
+shots <- fromJSON(content(shotsrequest, as = 'text'))
+shots_df <- as.tibble(data.frame(shots$resultSets$rowSet[[1]], stringsAsFactors = FALSE))
+names(shots_df) <- tolower(as.character(shots$resultSets$headers[[1]]))
 
-if (length(raw_shots_data) == 0) {
-  shots <- data.frame(
-    matrix(nrow = 0, ncol = length(shots_col_names))
-  )
-} else {
-  shots <- data.frame(
-    matrix(
-      unlist(raw_shots_data),
-      ncol = length(shots_col_names),
-      byrow = TRUE
-    )
-  )
-}
 
-shots <- as_tibble(shots)
-names(shots) <- shots_col_names
-shots <- mutate(shots,
+shots_df <- mutate(shots_df,
                   loc_x = as.numeric(as.character(loc_x)),
                   loc_y = as.numeric(as.character(loc_y))
                   )
 
-return(shots)
+return(shots_df)
 
+}
+
+#teamgamelog endpoint for game id's??
+
+# playbyplay 
+#data returns event_ids(event_num) of individual 'plays' that correspond to a list of movements
+# merge with movement data to visualize play.
+get_pbp_data <- function(gameid) {
+    pbprequest <-  GET(
+      "http://stats.nba.com/stats/playbyplayv2",
+      query = list(
+        GameID = '0021500431',
+        StartPeriod = '1',
+        EndPeriod = '4'
+      ),
+      add_headers(request_headers)
+    )
+    
+    pbp <- fromJSON(content(pbprequest, as ='text'))
+    pbp_df <- as.tibble(data.frame(pbp$resultSet$rowSet[[1]], stringsAsFactors=FALSE))
+    names(pbp_df) <- tolower(as.character(pbp$resultSets$headers[[1]]))
+    
+    
+    
+    
+    return(pbp_df)
+    
 }

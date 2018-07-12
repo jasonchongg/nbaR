@@ -12,10 +12,12 @@ library(grid)
 library(jpeg)
 library(RCurl)
 source('get_data.R')
+# load players data
+players_df <- get_players_data()
 
 # generate raster img of court background picture
-courtImg.URL <- "https://thedatagame.files.wordpress.com/2016/03/nba_court.jpg"
-court <- rasterGrob(readJPEG(getURLContent(courtImg.URL)),
+#courtImg.URL <- "https://thedatagame.files.wordpress.com/2016/03/nba_court.jpg"
+court <- rasterGrob(readJPEG('nba_court.jpg'),
                     width=unit(1,"npc"), height=unit(1,"npc"))
 
 
@@ -50,12 +52,12 @@ server <- function(input, output) {
    
    output$shotPlot <- renderPlot({
       # grab shots data
-     player_id <- players$person_id[which(players$display_first_last == input$players)]
+     player_id <- players_df$person_id[which(players_df$display_first_last == input$players)]
      season <- input$season
      shotsdf <- get_shots_data(player_id, season)
      # visualize shots graph
      ggplot(shotsdf, aes(x=loc_x, y=loc_y)) +
-       annotation_custom(court, -250, 250, -50, 420) +
+      annotation_custom(court, -250, 250, -50, 420) +
        geom_point(aes(colour = shot_zone_basic, shape=event_type)) +
        xlim(250, -250) + # flip x coords for proper right/left handling
        ylim(-50, 420) +
@@ -76,7 +78,7 @@ server <- function(input, output) {
    # render Data Set
    
    output$table <- renderDataTable({
-     player_id <- players$person_id[which(players$display_first_last == input$players)]
+     player_id <- players_df$person_id[which(players_df$display_first_last == input$players)]
      season <- input$season
      shotsdf <- get_shots_data(player_id, season)
      shotsdf})
@@ -85,7 +87,7 @@ server <- function(input, output) {
    
    output$playerSelection <- renderUI({
      selectInput("players", "Select Player", choices = 
-      players$display_first_last[which(players$to_year >= as.numeric(paste('20', unlist(strsplit(input$season,'-'))[2], sep = '')))],
+      players_df$display_first_last[which(players_df$to_year >= as.numeric(paste('20', unlist(strsplit(input$season,'-'))[2], sep = '')))],
       selected = 'Stephen Curry')
    })
    
